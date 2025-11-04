@@ -4,28 +4,27 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tk.Emailer.Entity.EmailEntity;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+
 @Service
 public class EmailService {
+
     private final WebClient webClient;
     private final String apiKey;
 
-    public EmailService(WebClient.Builder webClient, @Value("${GEMINI_API_KEY}") String apiKey, @Value("${GEMINI_API_URL}") String baseURL) {
+    public EmailService(WebClient.Builder webClientBuilder,
+                        @Value("${GEMINI_API_KEY}") String apiKey,
+                        @Value("${GEMINI_API_URL}") String baseURL) {
         this.apiKey = apiKey;
-        this.webClient = webClient.baseUrl(baseURL).build();
-
+        this.webClient = webClientBuilder.baseUrl(baseURL).build();
     }
 
-    public String responseGenService(EmailEntity emailEntity){
+    public String responseGenService(EmailEntity emailEntity) {
         System.out.println("Response API Called");
-        //gen prompt
-        String prompt=generatePrompt(emailEntity);
-
-        //make raw jason body
-        String reqBody= String.format("""
+        String prompt = generatePrompt(emailEntity);
+        String reqBody = String.format("""
                 {
                      "contents": [
                        {
@@ -37,63 +36,47 @@ public class EmailService {
                        }
                      ]
                    }
-                   
-                  """,prompt);
-        //send req-> So we get response that we will store her
-        String response=getResponse(reqBody);
+                   """, prompt);
 
-
-        //show to user i.e extract the response only from json
-        String extractResponse=extractResponse(response);
-
-        return extractResponse;
+        String response = getResponse(reqBody);
+        return extractResponse(response);
     }
 
     private String extractResponse(String response) {
-        //So here we will do json NAVIGATION using Object MApper
-
         try {
-            ObjectMapper objectMapper=new ObjectMapper();
-            JsonNode root=objectMapper.readTree(response);
-
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode root = objectMapper.readTree(response);
             return root.path("candidates")
                     .get(0)
                     .path("content")
                     .path("parts")
                     .get(0)
-                    .path("text").asText();
+                    .path("text")
+                    .asText();
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-
-
     }
 
     private String getResponse(String reqBody) {
-
-
-
         return webClient.post()
-                .uri(uriBuilder -> uriBuilder.path("/v1beta/models/gemini-2.5-flash:generateContent")
-                        .build())
-                .header("x-goog-api-key",apiKey)
-                .header("Content-Type","application/json")
+                .uri("/v1beta/models/gemini-2.5-flash:generateContent")
+                .header("x-goog-api-key", apiKey)
+                .header("Content-Type", "application/json")
                 .bodyValue(reqBody)
                 .retrieve()
-                .bodyToMono(String.class).block();
+                .bodyToMono(String.class)
+                .block();
     }
 
     private String generatePrompt(EmailEntity emailEntity) {
-
-        StringBuilder prompt=new StringBuilder();
-        if(emailEntity.getTone()!=null&& !emailEntity.getTone().isEmpty()){
-            prompt.append("Generate a email response in tone");
-            prompt.append(emailEntity.getTone());
+        StringBuilder prompt = new StringBuilder();
+        if (emailEntity.getTone() != null && !emailEntity.getTone().isEmpty()) {
+            prompt.append("Generate an email response in tone ");
+            prompt.append(emailEntity.getTone()).append(". ");
         }
         prompt.append("Original mail:\n");
         prompt.append(emailEntity.getMailContent());
         return prompt.toString();
     }
-
-
 }
