@@ -13,7 +13,7 @@ public class EmailService {
     private final WebClient webClient;
     private final String apiKey;
 
-    public EmailService(WebClient.Builder webClient, @Value("${Gemini-api-key}") String apiKey, @Value("${Gemini-api-url}") String baseURL) {
+    public EmailService(WebClient.Builder webClient, @Value("${GEMINI_API_KEY}") String apiKey, @Value("${GEMINI_API_URL}") String baseURL) {
         this.apiKey = apiKey;
         this.webClient = webClient.baseUrl(baseURL).build();
 
