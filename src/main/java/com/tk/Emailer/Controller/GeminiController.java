@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(
         origins = {
                 "http://localhost:5173",          // local React frontend
-                "https://mailreplygenratorfrontend.vercel.app" // deployed frontend (change if different)
+                "https://mail-reply-gen-frontend.vercel.app" // deployed frontend (change if different)
         },
         allowedHeaders = "*",
         allowCredentials = "true",
